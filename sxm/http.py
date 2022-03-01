@@ -7,6 +7,11 @@ from typing import Any, Callable, Coroutine, Dict, List, Optional
 
 from aiohttp import web
 
+from aiohttp_middlewares import (
+    cors_middleware,
+    error_middleware,
+)
+
 from sxm.client import HLS_AES_KEY, SegmentRetrievalException, SXMClient, SXMClientAsync
 
 __all__ = ["make_http_handler", "run_http_server"]
@@ -113,7 +118,7 @@ def make_http_handler(
                 response = web.Response(
                     status=200,
                     body=bytes(playlist, "utf-8"),
-                    headers={"Content-Type": "application/x-mpegURL"},
+                    headers={"Content-Type": "application/x-mpegURL; 'Access-Control-Allow-Origin'] = '*'"},
                 )
             else:
                 set_active(None)
@@ -189,7 +194,11 @@ def run_http_server(
         logging.fatal("Could not get SXM configuration")
         exit(1)
 
-    app = web.Application()
+    app = web.Application(
+        middlewares=(
+            cors_middleware(origins=("*",)),
+            error_middleware(),
+    ))
     app.router.add_get("/{_:.*}", make_http_handler(sxm.async_client))
     try:
         logger.info(f"running SXM proxy server on http://{ip}:{port}")
